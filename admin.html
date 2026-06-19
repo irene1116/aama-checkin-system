@@ -2,7 +2,7 @@
 <html lang="zh-TW">
 <head>
     <meta charset="UTF-8">
-    <title>AAMA 管理後台 V8.1</title>
+    <title>AAMA 管理後台 V8.4</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <style>
         body { background: #f8f9fa; font-size: 14px; height: 100vh; display: flex; flex-direction: column; overflow: hidden; margin: 0; }
@@ -47,6 +47,7 @@
 </head>
 <body>
 
+    <!-- 登入頁面結構 -->
     <div id="login-page">
         <div class="card p-4 shadow-lg" style="width: 360px; border-radius: 15px;">
             <h4 class="text-center mb-4 fw-bold">AAMA 管理員登入</h4>
@@ -56,25 +57,34 @@
         </div>
     </div>
 
+    <!-- 管理後台主內容結構 -->
     <div id="admin-content">
         <div class="top-bar">
+            <!-- 按鈕位置重新調整：清空移至最左邊 -->
             <div class="d-flex justify-content-between align-items-center mb-4">
                 <div class="d-flex gap-2 align-items-center">
+                    <!-- 1. 清空資料庫 (移至最左側第一順位) -->
+                    <button class="btn btn-modern btn-danger-m" onclick="clearAllWithTripleConfirm()">清空資料庫</button>
+
+                    <!-- 2. 匯入名單 -->
                     <input type="file" id="import-file" style="display:none" onchange="importExcel(this)">
                     <button class="btn btn-modern btn-primary-m" onclick="document.getElementById('import-file').click()">匯入名單</button>
                     
+                    <!-- 3. 上傳 Banner -->
                     <input type="file" id="banner-upload" style="display:none" accept="image/*" onchange="uploadImage(this)">
                     <button class="btn btn-modern btn-secondary-m" onclick="document.getElementById('banner-upload').click()">上傳 Banner</button>
 
+                    <!-- 4. 下載已報到 -->
                     <button class="btn btn-modern btn-success-m" onclick="exportExcel()">下載已報到</button>
                     
+                    <!-- 5. 匯出未報到 -->
                     <button class="btn btn-modern btn-outline-success-m" onclick="exportUncheckedExcel()">匯出未報到</button>
                     
+                    <!-- 6. 手動/補件報到 -->
                     <button class="btn btn-modern btn-warning-m" data-bs-toggle="modal" data-bs-target="#manualCheckinModal">手動/補件報到</button>
-                    
-                    <button class="btn btn-modern btn-danger-m" onclick="clearAllWithTripleConfirm()">清空資料庫</button>
                 </div>
                 
+                <!-- 人數顯示：大字級儀表板氣泡卡片 -->
                 <div class="d-flex gap-3">
                     <div class="stat-card stat-card-in">
                         <div class="stat-icon">👥</div>
@@ -93,7 +103,8 @@
                 </div>
             </div>
             
-            <div class="row justify-content-end g-2 align-items-center">
+            <!-- 下方搜尋與過濾列 (已改為 justify-content-start 置左對齊) -->
+            <div class="row justify-content-start g-2 align-items-center">
                 <div class="col-md-3">
                     <select id="role-filter" class="form-select form-select-sm" onchange="renderList()">
                         <option value="">身分過濾: 全部</option>
@@ -110,7 +121,8 @@
             <div class="list-section">
                 <table class="table table-hover bg-white border text-center">
                     <thead class="sticky-head">
-                        <tr><th width="50">No.</th><th width="100">身分</th><th width="70">期數</th><th width="100">識別證號</th><th>資料庫姓名</th><th>公司</th><th>備註</th></tr>
+                        <!-- 欄位名稱優化：將原本的「資料庫姓名」精確命名為「參與者中文姓名」 -->
+                        <tr><th width="50">No.</th><th width="100">身分</th><th width="70">期數</th><th width="100">識別證號</th><th>參與者中文姓名</th><th>公司</th><th>備註</th></tr>
                     </thead>
                     <tbody id="p-list"></tbody>
                 </table>
@@ -128,6 +140,7 @@
         </div>
     </div>
 
+    <!-- 雙模式手動報到彈窗 -->
     <div class="modal fade" id="manualCheckinModal" tabindex="-1">
         <div class="modal-dialog">
             <div class="modal-content">
