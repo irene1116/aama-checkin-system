@@ -98,46 +98,53 @@
         }
 
         function handleCheckIn() {
-            const role = document.getElementById('role').value;
-            const rawName = document.getElementById('name').value.trim();
-            const cohortInput = document.getElementById('cohort').value.trim();
+    const role = document.getElementById('role').value;
+    const rawName = document.getElementById('name').value.trim();
+    const cohortInput = document.getElementById('cohort').value.trim();
 
-            if (role === '學員' && (parseInt(cohortInput) < 1 || !cohortInput)) {
-                alert("請輸入正確期數"); return;
+    if (role === '學員' && (parseInt(cohortInput) < 1 || !cohortInput)) {
+        alert("請輸入正確期數"); return;
+    }
+
+    db.ref('participants').once('value', (snapshot) => {
+        let matchedUser = null, matchedKey = null;
+        let matchCount = 0; 
+        const cleanInput = rawName.replace(/\s+/g, '').toLowerCase();
+
+        snapshot.forEach((child) => {
+            const data = child.val();
+            const dbName = (data.name || "").replace(/\s+/g, '').toLowerCase();
+            const dbEngName = (data.englishName || "").replace(/\s+/g, '').toLowerCase();
+            const nameMatch = (dbName !== "" && cleanInput.includes(dbName)) || 
+                              (dbEngName !== "" && cleanInput.includes(dbEngName)) || 
+                              (cleanInput !== "" && (dbName + dbEngName).includes(cleanInput));
+
+            if (nameMatch && data.role === role) {
+                if (role === '學員' && String(data.cohort) !== String(cohortInput)) return;
+                
+                matchCount++;
+                matchedUser = data; 
+                matchedKey = child.key;
             }
+        });
 
-            db.ref('participants').once('value', (snapshot) => {
-                let matchedUser = null, matchedKey = null;
-                const cleanInput = rawName.replace(/\s+/g, '').toLowerCase();
-
-                snapshot.forEach((child) => {
-                    const data = child.val();
-                    const dbName = (data.name || "").replace(/\s+/g, '').toLowerCase();
-                    const dbEngName = (data.englishName || "").replace(/\s+/g, '').toLowerCase();
-                    const nameMatch = (dbName !== "" && cleanInput.includes(dbName)) || 
-                                      (dbEngName !== "" && cleanInput.includes(dbEngName)) || 
-                                      (cleanInput !== "" && (dbName + dbEngName).includes(cleanInput));
-
-                    if (nameMatch && data.role === role) {
-                        if (role === '學員' && String(data.cohort) !== String(cohortInput)) return;
-                        matchedUser = data; matchedKey = child.key;
-                    }
-                });
-
-                if (matchedUser) {
-                    if (matchedUser.checked) { alert("您已完成報到，請勿重複送出"); return; }
-                    let remark = matchedUser.isRegistered === "否" ? "未報名！" : (matchedUser.note || "");
-                    db.ref('participants/' + matchedKey).update({
-                        checked: true, inputName: rawName, checkTime: Date.now(), note: remark
-                    });
-                    if(matchedUser.isVIP === "是") db.ref('chats').push({ user: "系統", msg: `📢 VIP [${matchedUser.name}] 已報到！`, time: new Date().toLocaleTimeString() });
-                    showSuccess();
-                } else {
-                    document.getElementById('checkin-form').style.display = 'none';
-                    document.getElementById('supplement-form').style.display = 'block';
-                }
+        if (matchCount === 1 && matchedUser) {
+            if (matchedUser.checked) { alert("您已完成報到，請勿重複送出"); return; }
+            let remark = matchedUser.isRegistered === "否" ? "未報名！" : (matchedUser.note || "");
+            db.ref('participants/' + matchedKey).update({
+                checked: true, inputName: rawName, checkTime: Date.now(), note: remark
             });
+            if(matchedUser.isVIP === "是") db.ref('chats').push({ user: "系統", msg: `📢 VIP [${matchedUser.name}] 已報到！`, time: new Date().toLocaleTimeString() });
+            showSuccess();
+        } else {
+            // 【核心修正】在切換到補件頁面前，強制解除期數的必填限制，防止瀏覽器卡死
+            document.getElementById('cohort').required = false;
+            
+            document.getElementById('checkin-view').style.display = 'none';
+            document.getElementById('supplement-form').style.display = 'block';
         }
+    });
+}
 
         function submitSupplement() {
             db.ref('participants').push({
